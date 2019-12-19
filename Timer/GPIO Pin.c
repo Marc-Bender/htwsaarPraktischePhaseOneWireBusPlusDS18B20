@@ -1,5 +1,7 @@
 #include "GPIO Pin.h"
 
+#define NUM_OF_EXT_INTERRUPTS (8U)
+
 /*
 	always_inline
 	Generally, functions are not inlined unless optimization is specified. For functions declared inline, this attribute inlines the function independent of any restrictions that otherwise apply to inlining. 
@@ -28,7 +30,7 @@ inline void disablePullup(IN_PAR const GPIOPin_t * const pin)
 	*(pin->PORTx) &= ~(1<<(pin->pinNumber)); // only if input
 }
 
-static volatile CallbackFunctionType callbacksForExternalInterrupts[8];
+static volatile CallbackFunctionType callbacksForExternalInterrupts[NUM_OF_EXT_INTERRUPTS];
 
 __attribute__((optimize("O3"))) void enableExternalInterrupt(IN_PAR const GPIOPin_t * const pin, IN_PAR const ExternalInteruptPolarity_t polarity, IN_PAR CallbackFunctionType onExternalInterrupt)
 {
