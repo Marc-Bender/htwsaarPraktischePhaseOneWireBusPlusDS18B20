@@ -1,5 +1,5 @@
 # htwsaarPraktischePhaseOneWireBusPlusDS18B20
-Driver for the One-Wire-Bus and the DS18B20 on an Atmega2560 (on an Arduino Mega Dev-Board).
+Driver for the One-Wire-Bus and the DS18B20 on an Atmega2560 (on an Arduino Mega Dev-Board). Then later ported to a smaller ATmega328P Processor as found on the Uno and others.
 
 Develeopped as part of my work during the practical phase of my studies for temperature measurements in an engine-test-rig.
 
