@@ -9,3 +9,5 @@ Written in pure C without using the premade libraries for the tasks since they r
 
 Where it was not possible to get around busy-wait since time delays too short for timers and interrupts to act where needed busy-wait was 
 used but focus was on keeping such places at minimum.
+
+I started out with coding the timers since that was relatively easy to do and also since the One-Wire-Bus-Protocol is implemented by heavily using timers here it was the most logical thing to start with.  
