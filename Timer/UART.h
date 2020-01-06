@@ -10,6 +10,7 @@
 
 	typedef enum
 	{
+		USARTBaudRate_Reset,
 		USARTBaudRate_9600,
 		USARTBaudRate_14400,
 		USARTBaudRate_19200,
@@ -21,21 +22,8 @@
 		USARTBaudRate_128000,
 		USARTBaudRate_256000
 	}USARTBaudRate_t;
-
-	typedef struct 
-	{
-		struct  
-		{
-			uint8_t enableReceiver:1;
-			uint8_t enableTransmitter:1;
-			uint8_t enableDataEmptyInterrupt:1;
-			uint8_t UNUSED:5;
-		}flags;
-		
-		USARTBaudRate_t baudrate;
-	}USARTConfiguration_t;
 	
-	void USART0_init(IN_PAR const USARTConfiguration_t * const uartConfiguration);
+	void USART0_init(IN_PAR const USARTBaudRate_t baudrate);
 	void USART0_SendString(IN_PAR const char * const string, IN_PAR const uint8_t length);
 	void USART0_SendChar(IN_PAR const char chr);
 #endif

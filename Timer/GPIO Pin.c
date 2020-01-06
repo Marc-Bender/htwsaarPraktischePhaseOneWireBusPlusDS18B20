@@ -1,6 +1,6 @@
 #include "GPIO Pin.h"
 
-#define NUM_OF_EXT_INTERRUPTS (8U)
+#define NUM_OF_EXT_INTERRUPTS (2U)
 
 /*
 	always_inline
@@ -34,8 +34,8 @@ static volatile CallbackFunctionType callbacksForExternalInterrupts[NUM_OF_EXT_I
 
 __attribute__((optimize("O3"))) void enableExternalInterrupt(IN_PAR const GPIOPin_t * const pin, IN_PAR const ExternalInteruptPolarity_t polarity, IN_PAR CallbackFunctionType onExternalInterrupt)
 {
-	*(pin->EICRx) &= ~(0x03 << (pin->INTx > 3 ? pin->INTx - 4 * 2 : pin->INTx * 2)); // preclear the ISCn bits
-	*(pin->EICRx) |= polarity << (pin->INTx > 3 ? pin->INTx - 4 * 2 : pin->INTx * 2); // set the ISCn bits
+	EICRA &= ~(0x03 << (pin->INTx * 2)); // preclear the ISCn bits
+	EICRA |= polarity << (pin->INTx * 2); // set the ISCn bits
 	EIMSK |= 1<<(pin->INTx);
 	callbacksForExternalInterrupts[pin->INTx] = onExternalInterrupt;
 }
@@ -47,7 +47,7 @@ void disableExternalInterrupt(IN_PAR const GPIOPin_t * const pin)
 	callbacksForExternalInterrupts[pin->INTx] = NULL;
 }
 
-ISR(INT5_vect)
+ISR(INT0_vect)
 {
-	(callbacksForExternalInterrupts[INT5])();
+	(callbacksForExternalInterrupts[INT0])();
 }

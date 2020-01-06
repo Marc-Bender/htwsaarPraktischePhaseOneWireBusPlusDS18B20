@@ -59,11 +59,11 @@ void setBaudrate(IN_PAR const USARTBaudRate_t baudrate)
 	}
 }
 
-void USART0_init(IN_PAR const USARTConfiguration_t * const uartConfiguration)
+void USART0_init(IN_PAR const USARTBaudRate_t baudrate)
 {
-	setBaudrate(uartConfiguration->baudrate);
+	setBaudrate(baudrate);
 	UCSR0A |= (1<<U2X0); // Doubles the effective Transmission speed in asynchronous mode (see Datasheet ATmega2560 p.219/435
-	UCSR0B |= (uartConfiguration->flags.enableReceiver<<RXEN0)|(uartConfiguration->flags.enableTransmitter<<TXEN0);
+	UCSR0B |= 1<<TXEN0;
 	UCSR0C |= (3<<UCSZ00); // Set frame format: 8data, 1stop bit
 }
 
@@ -92,12 +92,14 @@ void USART0_SendChar(IN_PAR const char chr)
 	USART0_enableDataRegisterEmptyInterrupt();
 }
 
-ISR(USART0_UDRE_vect)
+ISR(USART_UDRE_vect)
 {
 	// on output data register empty
 	UCSR0A |= (1<<UDRE0); //When the Data Register Empty Interrupt Enable (UDRIEn) bit in UCSRnB is written to one, the USART Data Register Empty Interrupt will be executed as long as UDREn is set (provided that global interrupts are enabled). UDREn is cleared by writing UDRn. (see Datasheet ATmega2560 p.208f/435)
 	if(bytesAvailableInBuffer(&txBuffer))
 		UDR0 = readFromBuffer(&txBuffer);
 	else
+	{
 		USART0_disableDataRegisterEmptyInterrupt();
+	}
 }

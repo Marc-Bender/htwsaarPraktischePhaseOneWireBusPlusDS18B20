@@ -16,7 +16,6 @@
 	
 		const uint8_t pinNumber;
 		const uint8_t INTx;
-		volatile uint8_t * const EICRx;
 	}GPIOPin_t;
 
 	typedef enum

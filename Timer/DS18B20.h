@@ -1,6 +1,12 @@
 #ifndef DS18B20_H_
 #define DS18B20_H_
 
+	#include <stdlib.h>
+	#include <string.h>
+	#include <stdio.h>
+	#include <avr/pgmspace.h>
+	#include "UART.h"
+
 	#include "OneWireFrontEnd.h"
 	#include "marcsLanguageExtension.h"
 	#include "GPIO Pin.h"

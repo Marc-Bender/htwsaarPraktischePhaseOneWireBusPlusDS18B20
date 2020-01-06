@@ -10,7 +10,7 @@
 	#define FOREVER for(;;)
 	typedef void (* CallbackFunctionType)(void);
 
-	#define ONBOARD_LED (7U)
+	#define ONBOARD_LED (5U)
 	
 	void deathTrap(void);
 
