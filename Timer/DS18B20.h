@@ -11,6 +11,8 @@
 	#include "marcsLanguageExtension.h"
 	#include "GPIO Pin.h"
 
+	#define FAMILY_CODE_DS18B20 (0x28)
+
 	typedef int16_t signed7Point4Fixed_t; // MSB is sign, bits 14-11 are have to be discarded after two complement generation for float conversion
 
 	void issueTemperatureConversion(IN_PAR const GPIOPin_t * const onewirepin, IN_PAR const bool issueCommandAtAllSensors, IN_PAR const uint8_t * const deviceID, IN_PAR const CallbackFunctionType onTemperatureConversionStarted);

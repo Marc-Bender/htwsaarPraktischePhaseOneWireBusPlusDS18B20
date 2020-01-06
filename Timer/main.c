@@ -14,6 +14,7 @@
 #include "UART.h"
 #include <stdio.h>
 #include <string.h>
+#include "MAX31850.h"
 
 #define REMAININGNUMBEROFINTERRUPTSFORONESECONDSTARTVALUE (2000UL)
 GPIOPin_t onewirepin={&DDRD,&PIND,&PORTD,2,INT0}; // Pin 2 on the Arduino Uno is PD2 (see here: https://www.arduino.cc/en/uploads/Main/Arduino_Uno_Rev3-schematic.pdf)
@@ -29,19 +30,24 @@ const uint8_t deviceID7[SIZE_OF_ID]={0x28, 0x3E, 0xD0, 0xC3, 0x03, 0x00, 0x00, 0
 const uint8_t deviceID8[SIZE_OF_ID]={0x28, 0x71, 0xF3, 0x9B, 0x03, 0x00, 0x00, 0xC8}; //          v
 const uint8_t deviceID9[SIZE_OF_ID]={0x28, 0x93, 0xAD, 0xC3, 0x03, 0x00, 0x00, 0x7C}; //     till here
 
-#define NUM_OF_ONEWIRE_SENSORS_ATTACHED (10U)
+const uint8_t deviceIDThermocouple[SIZE_OF_ID]={0x3B, 0x19, 0x2B, 0x18, 0x00, 0x00, 0x00, 0xC3};
 
-const uint8_t * deviceIDs[NUM_OF_ONEWIRE_SENSORS_ATTACHED]={deviceID0,deviceID1,deviceID2,deviceID3,deviceID4,deviceID5,deviceID6,deviceID7,deviceID8,deviceID9};
+#define NUM_OF_ONEWIRE_SENSORS_ATTACHED (11U)
+
+const uint8_t * deviceIDs[NUM_OF_ONEWIRE_SENSORS_ATTACHED]={deviceIDThermocouple,deviceID0,deviceID1,deviceID2,deviceID3,deviceID4,deviceID5,deviceID6,deviceID7,deviceID8,deviceID9};
 
 volatile uint8_t idByte=0;
 signed7Point4Fixed_t currentTemperatures[NUM_OF_ONEWIRE_SENSORS_ATTACHED]={0}; // equals +0.0000degC
 bool errorBits[NUM_OF_ONEWIRE_SENSORS_ATTACHED];
 static char * telemetryString;
+static char * uptimeString;
+static volatile uint32_t uptimeInSeconds;
 
 void startTemperatureConversionAndReadoutCycle(void);
 
 void onOneSecondHasElapsedEvent(void)
 {
+	uptimeInSeconds++;
 	startTemperatureConversionAndReadoutCycle();
 }
 
@@ -67,14 +73,31 @@ void onAllTemperaturesRead(void)
 void sendTelemetryViaUSART0(void)
 {
 	signed7Point4Fixed_t currentTemperature = currentTemperatures[indexOfTemperatureSensorBeingRead];
+
+	char sign='?'; // some easy to tell apart from real data defaults that should be overwritten anyways
+	uint8_t intPart=255;
+	uint16_t nonIntPart=65535;
+
+	if (deviceIDs[indexOfTemperatureSensorBeingRead][0]==FAMILY_CODE_DS18B20)
+	{	
+		sign = getSignOfSigned7Point4Fixed(currentTemperature);
+		intPart = getIntegerPartOfSigned7Point4Fixed(currentTemperature);
+		nonIntPart = getNonIntegerPartOfSigned7Point4Fixed(currentTemperature);
+	}
+	else if(deviceIDs[indexOfTemperatureSensorBeingRead][0]==FAMILY_CODE_MAX31850)
+	{
+		sign = getSignOfSigned11Point2Fixed(currentTemperature);
+		intPart = getIntegerPartOfSigned11Point2Fixed(currentTemperature);
+		nonIntPart = getNonIntegerPartOfSigned11Point2Fixed(currentTemperature);
+	}
+	else
+	{
+		deathTrap(); // can not process because then sign intPart and nonIntPart would end up being uninitialized...
+	}
 	
-	const char sign = getSignOfSigned7Point4Fixed(currentTemperature);
-	const uint8_t intPart = getIntegerPartOfSigned7Point4Fixed(currentTemperature);
-	const uint16_t nonIntPart = getNonIntegerPartOfSigned7Point4Fixed(currentTemperature);
+	#define TELEMETRY_STRING_SIZE_MAX (sizeof('#')+2+sizeof(':')+1+3+sizeof('.')+4+strlen("degC ")+strlen("Err: ")+1+strlen("\r\n")+sizeof('\0')) /*1st 2 digits for the number 1st 1 for the sign 3 for the int 4 for the fraction +1 for the error bit*/
 	
-	#define TELEMETRY_STRING_SIZE_MAX (sizeof('#')+1+sizeof(':')+1+3+sizeof('.')+4+strlen("degC ")+strlen("Err: ")+1+strlen("\r\n")+sizeof('\0')) /*1st 1 for the number (one digit only) 2nd for the sign 3 for the int 4 for the fraction +1 for the error bit*/
-	
-	sprintf(telemetryString, "#%i:%c%3i.%04idegC Err: %c\r\n",indexOfTemperatureSensorBeingRead, sign, intPart, nonIntPart, errorBits[indexOfTemperatureSensorBeingRead]?'E':'0');
+	sprintf(telemetryString, "#%2i:%c%3i.%04idegC Err: %c\r\n",indexOfTemperatureSensorBeingRead, sign, intPart, nonIntPart, errorBits[indexOfTemperatureSensorBeingRead]?'E':'0');
 	USART0_SendString(telemetryString, strlen(telemetryString)); 
 }
 
@@ -90,6 +113,9 @@ void onTemperatureConversionStarted(void)
 	{
 		sendTelemetryViaUSART0();
 		USART0_SendString("\r\n\r\n",strlen("\r\n\r\n"));
+		#define UPTIME_STRING_SIZE_MAX (strlen("!!Uptime [s]= ")+10+strlen(" \r\n")) /*10 is the amount of digits needed to display 2^32*/
+		sprintf(uptimeString, "!!Uptime [s]= %-10i \r\n", uptimeInSeconds);
+		USART0_SendString(uptimeString,strlen(uptimeString));
 		indexOfTemperatureSensorBeingRead=0;
 		onAllTemperaturesRead();
 	}
@@ -109,15 +135,13 @@ void startTemperatureConversionAndReadoutCycle(void)
 
 __attribute__((constructor)) void mainInit(void)
 {
-	DDRB |= (1<<ONBOARD_LED); // set Pin of on board led to output
-	PORTB &= ~(1<<ONBOARD_LED); // Turn off on board led initially because it happens to light more often than not when the board is powered by default.
-
 	makeInput(&onewirepin);
 	disablePullup(&onewirepin);
 	
-	USART0_init(USARTBaudRate_115200);
+	USART0_init(USARTBaudRate_9600);
 	
 	telemetryString = malloc(TELEMETRY_STRING_SIZE_MAX);
+	uptimeString = malloc(UPTIME_STRING_SIZE_MAX);
 	
 	setWaveformGenerationModeTimer0(WaveformGenerationModeTimer0_CTC); 
 	defineCallbackOnTimer0CaptureCompareAMatch(&timingGeneratorForOneSecond);
@@ -125,6 +149,7 @@ __attribute__((constructor)) void mainInit(void)
 	enableTimer0CaptureCompareAInterrupt();
 	
  	setWaveformGenerationModeTimer2(WaveformGenerationModeTimer2_CTC);// since the timer shall be reserved to the one wire functionality only these bits will only be set once and never changed again
+	uptimeInSeconds=0;
 	sei();
 
 	startTemperatureConversionAndReadoutCycle();
@@ -133,6 +158,7 @@ __attribute__((constructor)) void mainInit(void)
 __attribute__((destructor)) void mainEnd(void)
 {
 	free(telemetryString);
+	free(uptimeString);
 }
 
 #pragma GCC diagnostic ignored "-Wmain"

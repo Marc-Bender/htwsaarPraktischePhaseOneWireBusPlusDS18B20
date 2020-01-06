@@ -13,10 +13,6 @@
 void deathTrap(void)
 {
 	cli(); // Turn Off all Interrupts
-	DDRB |= (1<<ONBOARD_LED);
-	while(true)
-	{
-		PINB |= 1<<ONBOARD_LED;
-		for(uint32_t wait=0;wait<F_CPU/5;wait++);
-	}
+	FOREVER
+		DO_NOTHING
 }

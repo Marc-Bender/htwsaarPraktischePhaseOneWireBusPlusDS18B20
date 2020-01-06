@@ -190,6 +190,5 @@ uint8_t getIntegerPartOfSigned7Point4Fixed(IN_PAR const signed7Point4Fixed_t num
 
 uint16_t getNonIntegerPartOfSigned7Point4Fixed(IN_PAR const signed7Point4Fixed_t num)
 {
-	const uint8_t nonIntPartRaw = (uint8_t)((abs(num))&0x000F);
-	return ((nonIntPartRaw & (1<<0))*625) + (((nonIntPartRaw & (1<<1))>>1)*1250) + (((nonIntPartRaw & (1<<2))>>2)*2500) + (((nonIntPartRaw & (1<<3))>>3)*5000);
+	return (((abs(num))&0x000F) * 625);
 }
