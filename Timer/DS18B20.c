@@ -1,3 +1,7 @@
+/**
+ * \file DS18B20.c
+ * \brief Implemtations for working with the sensors of DS18B20-type (could potentially at least partially be used for different sensors as well or serve as a template for their drivers)
+**/ 
 #include "DS18B20.h"
 
 typedef enum
@@ -54,6 +58,11 @@ DS18B20_ReadTemperatureInternalData_t internalDataReadTemperatureDS18B20;
 
 uint8_t calculateCRC8(const uint8_t * const addr, const uint8_t len);
 
+/**
+ * \brief this is the last function in the statemachine for reading temperatures even though this might be useful if you really wanted to do anything more advanced with the sensor. 
+ * as it stands that could require some restructuring though.
+ * Get called indirectly when the reading of the scratchpad is complete
+**/ 
 void onScratchpadRead(void)
 {
 	uint8_t calculatedCRC = calculateCRC8(internalDataReadSP_DS18B20.scratchpad->asArray, sizeof(struct scratchpadAsStruct)-1);
@@ -66,11 +75,18 @@ void onScratchpadRead(void)
 
 void readScratchpadRegisters(IN_PAR const bool startAtZero);
 
+/**
+ * \brief this is part of the statemachine for reading the temperature as it stands but could be useful for different stuff as well.
+ * this is part of the quasi-recursive-loop that reads all the bytes that the DS18B20's internal storage (aka the scratchpad) has
+**/ 
 void readNextScratchpadByte(void)
 {
 	readScratchpadRegisters(false);
 }
 
+/**
+ * \brief see above
+**/ 
 void readScratchpadRegisters(IN_PAR const bool startAtZero)
 {
 	static uint8_t positionWithinScratchpad;
@@ -82,16 +98,27 @@ void readScratchpadRegisters(IN_PAR const bool startAtZero)
 		onScratchpadRead();
 }
 
+/**
+ * \brief this is part of the state machine for reading the temperature as it stands but could be useful for differnt stuff as well.
+ * gets called indirectly when the read scratchpad command was sent.
+**/ 
 void onReadScratchpadCommandSent(void)
 {
 	readScratchpadRegisters(true);
 }
 
+/**
+ * \brief this is part of the state machine for reading the temperature as it stands but could be useful for differnt stuff as well.
+ * gets called indirectly when the initialization sequence is over and the match rom command is out
+**/ 
 void onReadyToSendReadScratchpadCommand(void)
 {
 	writeByteToOneWireBus(DS18B20_ROMCommands_ReadScratchpad,true,internalDataReadSP_DS18B20.onewirepin,&onReadScratchpadCommandSent);
 }
 
+/**
+ * \brief this starts the state machine for reading the entire scratchpad (which itself is only part of the statemachine for reading the temperatures)
+**/ 
 void readEntireScratchpad(IN_PAR const GPIOPin_t * const onewirepin, IN_PAR const uint8_t * const deviceID, OUT_PAR DS18B20_Scratchpad_t * const scratchpadThatContainsTheRawData, IN_PAR const CallbackFunctionType onEntireScratchpadRead)
 {
 	// do not use the normal internalData object here since subordinate state machines will use that and overwrite what ever you would write there here.
@@ -103,6 +130,10 @@ void readEntireScratchpad(IN_PAR const GPIOPin_t * const onewirepin, IN_PAR cons
 	sendMatchRomCommand(onewirepin,deviceID,&onReadyToSendReadScratchpadCommand);
 }
 
+/**
+ * \brief this is the last function in the OUTER statemachine for reading temperatures
+ * this gets called indirectly when the entire scrathpad was read.
+**/ 
 void onScratchpadReadyForTemperatureStorage(void)
 {
 	*(internalDataReadTemperatureDS18B20.temperatureFixedPointFormat) = (internalDataReadSP_DS18B20.scratchpad->asStruct.temperatureMSB<<8) | internalDataReadSP_DS18B20.scratchpad->asStruct.temperatureLSB;;
@@ -112,22 +143,33 @@ void onScratchpadReadyForTemperatureStorage(void)
 	internalDataReadTemperatureDS18B20.callback(); // temperature is now ready and found in the given location as 7.4 Fixed Point Signed
 }
 
+/**
+ * \brief this is part of the  statemachine for issuing temperature conversions
+ * this gets called indirectly when the temperature conversion command was sent
+**/ 
 void onConvertTemperatureCommandSent(void)
 {
 	internalDataReadTemperatureDS18B20.callback(); // on temperatureConversionStarted
 }
 
+/**
+ * \brief this part of the state machine for issuing temperature conversions
+ * this gets called when the initialization sequence is completed and the slave(s) is/are addressed
+**/ 
 void onReadyToSendConvertTemperatureCommand(void)
 {
 	writeByteToOneWireBus(DS18B20_ROMCommands_ConvertTemperature,true,internalDataReadTemperatureDS18B20.onewirepin,&onConvertTemperatureCommandSent);
 }
 
-void issueTemperatureConversion(IN_PAR const GPIOPin_t * const onewirepin, IN_PAR const bool issueCommandAtAllSensors ,IN_PAR const uint8_t * const deviceID, IN_PAR const CallbackFunctionType onTemperatureConversionStarted)
+/**
+ * \brief This function starts the state machine for issuing (a) temperature conversion(s) 
+**/ 
+void issueTemperatureConversion(IN_PAR const GPIOPin_t * const onewirepin, IN_PAR const bool issueCommandToAllSensors ,IN_PAR const uint8_t * const deviceID, IN_PAR const CallbackFunctionType onTemperatureConversionStarted)
 {
 	// if issueCommandToAllSensors is true the value in deviceID is not used but must be given anyways. Its recommended to use NULL in that instance
 	internalDataReadTemperatureDS18B20.callback=onTemperatureConversionStarted;
 	internalDataReadTemperatureDS18B20.onewirepin = onewirepin;
-	if(issueCommandAtAllSensors)
+	if(issueCommandToAllSensors)
 		sendSkipRomCommand(onewirepin,&onReadyToSendConvertTemperatureCommand);
 	else
 	{
@@ -136,6 +178,11 @@ void issueTemperatureConversion(IN_PAR const GPIOPin_t * const onewirepin, IN_PA
 	}
 }
 
+/**
+ * \brief this starts the state machine for reading the temperature from a slave.
+ * The temperature conversion must have been issued before hand or you may end up getting outdated or meaningless values.
+ * It is not checked if a temperature conversion was issued, is currently active, or anything. This is in the obligation of the programmer.
+**/ 
 void readTemperature(IN_PAR const GPIOPin_t * const onewirepin, IN_PAR const uint8_t * const deviceID, OUT_PAR signed7Point4Fixed_t * const temperatureFixedPointFormat, OUT_PAR bool * const errorBit, IN_PAR const CallbackFunctionType onTemperatureReady)
 {
 	internalDataReadTemperatureDS18B20.callback=onTemperatureReady;
@@ -178,17 +225,29 @@ uint8_t calculateCRC8(IN_PAR const uint8_t * addr, IN_PAR uint8_t len)
 	return crc;
 }
 
-char getSignOfSigned7Point4Fixed(IN_PAR const signed7Point4Fixed_t num )
+/**
+ * \brief This is one of the three functions that get particular bits of information out of a fixed point format number.
+ * This function returns the sign of the given fixed point number
+**/ 
+__attribute__((pure)) char getSignOfSigned7Point4Fixed(IN_PAR const signed7Point4Fixed_t num )
 {
 	return (num & 0xF800)?'-':'+';
 }
 
-uint8_t getIntegerPartOfSigned7Point4Fixed(IN_PAR const signed7Point4Fixed_t num)
+/**
+ * \brief This is one of the three functions that get particular bits of information out of a fixed point format number.
+ * This function returns the integer part of the fixed point number.
+**/ 
+__attribute__((pure)) uint8_t getIntegerPartOfSigned7Point4Fixed(IN_PAR const signed7Point4Fixed_t num)
 {
 	return (uint8_t)((abs(num) & 0x07F0)>>4);
 }
 
-uint16_t getNonIntegerPartOfSigned7Point4Fixed(IN_PAR const signed7Point4Fixed_t num)
+/**
+ * \brief This is one of the three functions that get particular bits of information out of a fixed point format number.
+ * This function returns the non-integer part of the fixed point number.
+**/ 
+__attribute__((pure))uint16_t getNonIntegerPartOfSigned7Point4Fixed(IN_PAR const signed7Point4Fixed_t num)
 {
 	return (((abs(num))&0x000F) * 625);
 }

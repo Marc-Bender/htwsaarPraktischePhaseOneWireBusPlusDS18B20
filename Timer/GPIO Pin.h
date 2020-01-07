@@ -1,3 +1,9 @@
+/**
+ * \file "GPIO Pin.h"
+ * \brief Definitions for the use of GPIO pins
+ * WARNING: None of the functions in this module check if the data inside passed in datastructures is actually coherent (ie. if a pin on portb has registers only for B, ...)
+ * It is your obligation as a user to ensure passing in the right stuff (garbage in -> garbage out)
+**/ 
 #pragma once
 #ifndef GPIO_PIN_H_
 #define GPIO_PIN_H_

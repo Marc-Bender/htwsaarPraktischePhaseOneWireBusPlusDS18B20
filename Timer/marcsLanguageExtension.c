@@ -10,9 +10,13 @@
 	#define F_CPU (16000000U)
 #endif
 
-void deathTrap(void)
+/**
+ * \brief This function is just intended to be a trap to lock up the processor in case that anything unexpected happens. 
+ * You can only ever leave this function with a reset.
+**/ 
+__attribute__((noreturn)) void deathTrap(void)
 {
-	cli(); // Turn Off all Interrupts
+	cli();
 	FOREVER
 		DO_NOTHING
 }

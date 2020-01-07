@@ -1,3 +1,8 @@
+/**
+ * \file DS18B20.h
+ * \brief Contains the definitions for working with the DS18B20 temperature sensors (at least up to the scale that was needed)
+ * Also contains functions that convert the fixed point data format into parts of what could be pieced together to a float (or a fixed point number as a string, ...)
+**/ 
 #ifndef DS18B20_H_
 #define DS18B20_H_
 

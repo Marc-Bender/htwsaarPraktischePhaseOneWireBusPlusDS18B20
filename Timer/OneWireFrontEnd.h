@@ -1,3 +1,10 @@
+/**
+ * \file OneWireFrontEnd.h
+ * \brief Contains the more front end functions for working with the One Wire Bus and most importantly writing drivers for various devices.
+ * There is an important notice on how the One Wire functionality is implemented in this code base in the Header with the Low Level stuff. It must be obeyed at all times when using these front end functions.
+ * Also everything thats true there is true here as well.
+**/ 
+
 #ifndef ONEWIREFRONTEND_H_
 #define ONEWIREFRONTEND_H_
 

@@ -1,8 +1,15 @@
-﻿#ifndef GUARD_GENERICBUFFER_H
+﻿/**
+ * \file GenericBuffer.h
+ * \brief Defines a basic byteoriented FIFO ringbuffer of modulo 2 dividable size and the functions that make it usable.
+**/ 
+#ifndef GUARD_GENERICBUFFER_H
 #define GUARD_GENERICBUFFER_H
 
+		/**
+		 * \brief BUFFER_SIZE must be less than 16 to make the initialization with zeros work
+		**/ 
 		#ifndef BUFFER_SIZE 
-			#define BUFFER_SIZE 10
+			#define BUFFER_SIZE (10U)
 		#endif
 		
 		#define MOD2BUFFER (1<<BUFFER_SIZE)

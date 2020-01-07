@@ -1,7 +1,14 @@
+/**
+ * \file Timer2.h
+ * \brief Contains the definitions for the usage of Timer2. This is widely (read almost-entirely) identical with the driver for the Timer0 which will therefor not be commented in any way.
+ * Mostly this differs through the availability of certain prescalers. That are not present in Timer0.
+ * The functionality for generating interrupts after a certain time is CPU Core Clock dependant and hardcoded. There is no calculation at runtime happening that takes the time period and then
+ * computes the optimum configuration for the prescaler and the "stop-counting-at-value"-register. This has been done in a different project and created some respectable amount of code for calculating the 
+ * ever same values. The CPU Core Clock is assumed to be 16MHz for those functions while the other functions in this module are clock agnostic.
+**/
+
 #ifndef TIMER2_H_
 #define TIMER2_H_
-
-// Module assumes a fixed 16Mhz CPU-Clock for the generation of timer interrupts in the given intervals
 
 #include <avr/io.h>
 #include <stddef.h>
