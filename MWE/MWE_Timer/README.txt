@@ -1,0 +1,3 @@
+Timer 2 aus Motorsteuerung und NICHT aus ONE WIRE...
+
+da sonst pwm nicht demonstrierbar (zum damaligen zeitpunkt noch nicht programmiert und nicht gebraucht)
